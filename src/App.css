@@ -1,0 +1,47 @@
+@import "~antd/dist/antd.css";
+
+a {
+  color: #31bdf4;
+}
+
+#csv input::-webkit-input-placeholder {
+  /* WebKit browsers */
+  color: rgb(196, 196, 196) !important;
+  font-size: 100px;
+}
+
+.datePicker:focus {
+  /* border: 1px solid #ccc !important;
+  outline-offset: -100000px !important;
+  box-shadow: 0 0 5px rgba(81, 203, 238, 1); */
+  border-radius: 10px;
+  border: 2px solid lightblue;
+  outline-width: 0px;
+}
+.datePicker {
+  display: flex;
+  height: 45px;
+
+  font-size: 16px;
+  padding: 0 10px;
+  font-weight: 400;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+.materialButton {
+  display: block;
+  height: 45px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 16px;
+}
+.materialButton:focus {
+  border-radius: 10px;
+  border: 3px solid lightblue;
+  outline-width: 0px;
+}

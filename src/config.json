@@ -1,0 +1,4 @@
+{
+  "apiEndPoint": "https://dashboard.powrsale.com/api/",
+  "imageEndPoint": "https://powrsalemedia.s3.ap-south-1.amazonaws.com/media/"
+}
