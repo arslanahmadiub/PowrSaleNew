@@ -221,34 +221,43 @@ export default function AuthenticationPage(props) {
           try {
             setLoadingShow(true);
             let { data } = await createUser(form_data);
+
             setLoadingShow(false);
 
             if (data.Success) {
-              setErrorMessage(
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-around",
-                  }}
-                >
-                  Account created successfully..For Login
-                  <div
-                    style={{
-                      color: "#1AB4B3",
-                      cursor: "pointer",
-                      marginLeft: "10px",
-                    }}
-                    onClick={handelLoginClickAfterSignUp}
-                  >
-                    Click Here
-                  </div>
-                </div>
-              );
-              setData({
-                email: "",
-                password: "",
-                password2: "",
+              history.push({
+                pathname: "/mailOtp",
+                state: {
+                  email: email,
+                  token: data.Token,
+                },
               });
+
+              // setErrorMessage(
+              //   <div
+              //     style={{
+              //       display: "flex",
+              //       justifyContent: "space-around",
+              //     }}
+              //   >
+              //     Account created successfully..For Login
+              //     <div
+              //       style={{
+              //         color: "#1AB4B3",
+              //         cursor: "pointer",
+              //         marginLeft: "10px",
+              //       }}
+              //       onClick={handelLoginClickAfterSignUp}
+              //     >
+              //       Click Here
+              //     </div>
+              //   </div>
+              // );
+              // setData({
+              //   email: "",
+              //   password: "",
+              //   password2: "",
+              // });
             }
           } catch (ex) {
             if (ex.response && ex.response.status === 500) {
@@ -365,16 +374,28 @@ export default function AuthenticationPage(props) {
           setLoadingShow(false);
 
           if (data.Success) {
-            await localStorage.setItem("token", data.Token);
-            if (shopLink !== null) {
-              let index = shopLink.lastIndexOf("/");
-              history.push(
-                "shop/" + shopLink.substring(index + 1, shopLink.length)
-              );
-              localStorage.removeItem("shopLink");
+            if (data.Verified) {
+              await localStorage.setItem("token", data.Token);
+              if (shopLink !== null) {
+                let index = shopLink.lastIndexOf("/");
+                history.push(
+                  "shop/" + shopLink.substring(index + 1, shopLink.length)
+                );
+                localStorage.removeItem("shopLink");
+              } else {
+                history.push("/dashboard");
+                localStorage.removeItem("shopLink");
+              }
             } else {
-              history.push("/dashboard");
-              localStorage.removeItem("shopLink");
+              // history.push("/mailOtp");
+
+              history.push({
+                pathname: "/mailOtp",
+                state: {
+                  email: email,
+                  token: data.Token,
+                },
+              });
             }
           }
         } catch (ex) {

@@ -7,12 +7,12 @@ import Button from "../../../CustomComponents/Button";
 import ShopBrand, { ShopBrandMobile } from "./ShopBrand";
 import { Security } from "@material-ui/icons";
 import { Hidden } from "@material-ui/core";
-import CustomLink from "../../../CustomComponents/CustomLink";
+import { saveShopId } from "../../../../action/checkoutAction";
 import { getProductDetail } from "../../../../services/shopServices";
 import { imageEndPoint } from "../../../../config.json";
 import move from "lodash-move";
 import { useHistory } from "react-router";
-
+import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
 
 const Container = Styled.div`
@@ -107,7 +107,7 @@ export default function ProductDescription({
   const shopIds = useSelector((state) => state.shopPreview.shopIdCollections);
   const [userWithOwnShop, setUserWithOwnShop] = useState(false);
   const history = useHistory();
-
+  const dispatch = useDispatch();
   useEffect(() => {
     getDetailData();
   }, []);
@@ -115,10 +115,6 @@ export default function ProductDescription({
   useEffect(() => {
     findShopId();
   }, [productDetail]);
-
-  // if (productDetail !== null && productDetail.length > 0) {
-  //
-  // }
 
   let findShopId = () => {
     if (productDetail !== null && productDetail.length > 0) {
@@ -135,7 +131,7 @@ export default function ProductDescription({
 
   let getDetailData = async () => {
     let result = await getProductDetail(data.productId);
-
+    dispatch(saveShopId(data.productId));
     setproductDetail(result.data.Details);
 
     let sideImageUrl = [];
@@ -145,6 +141,7 @@ export default function ProductDescription({
     });
     setsideUrl(sideImageUrl);
   };
+
   let newData = {
     delivery: "24hrs",
     description: productDetail !== null ? productDetail[0].description : "",
@@ -259,21 +256,20 @@ export default function ProductDescription({
                   <Grid item xs={12}>
                     {userAvailability ? null : (
                       <p style={{ fontSize: "15px" }}>
-                        Please{" "}
+                        Please
                         <span
                           style={{ color: "#31BDF4", cursor: "pointer" }}
                           onClick={handelLogin}
                         >
-                          {" "}
                           Login
-                        </span>{" "}
-                        Or{" "}
+                        </span>
+                        Or
                         <span
                           style={{ color: "#31BDF4", cursor: "pointer" }}
                           onClick={handelSignUp}
                         >
                           Create Account
-                        </span>{" "}
+                        </span>
                         To Buy This Product
                       </p>
                     )}

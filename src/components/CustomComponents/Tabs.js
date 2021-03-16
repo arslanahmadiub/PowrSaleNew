@@ -41,7 +41,11 @@ const Tabs = (props) => {
     dispatch(selectedTabIndex(index));
   };
   const functionRecall = useSelector((state) => state.wallet.transaction);
+  const tabIndex = useSelector((state) => state.shopPreview.selectedTab);
 
+  useEffect(() => {
+    setSelectedTab(tabIndex);
+  }, [tabIndex]);
   useEffect(() => {
     dispatch(reCallTransisation(!functionRecall));
   }, [selectedTab]);

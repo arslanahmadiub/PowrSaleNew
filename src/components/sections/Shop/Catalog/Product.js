@@ -4,6 +4,17 @@ import React, { useState, useEffect } from "react";
 import Styled from "styled-components";
 import BreadCrumbs from "./BreadCrumbs";
 import ProductDescription from "./ProductDescription";
+import Button from "../../../CustomComponents/Button";
+import { deleteProduct } from "../../../../services/shopServices";
+import { selectedTabIndex } from "../../../../action/shopAction";
+import { refreshCatalog } from "../../../../action/shopAction";
+import { setProductId } from "../../../../action/shopAction";
+import { useDispatch, useSelector } from "react-redux";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import { useHistory } from "react-router";
+import { Hidden } from "@material-ui/core";
 
 const Container = Styled.div`
     cursor: pointer;
@@ -51,8 +62,10 @@ const ButtonContainer = Styled.div`
 
 const Product = (props) => {
   const [dialog, setDialog] = React.useState(false);
-
+  const dispatch = useDispatch();
   let [payDialog, setPayDialog] = useState(false);
+  const [confirmShow, setConfirmShow] = useState(false);
+  const history = useHistory();
 
   let [paymentDetail, setPaymentDetail] = useState();
 
@@ -72,6 +85,42 @@ const Product = (props) => {
   useEffect(() => {
     payDialogUpdate();
   }, [props.updateDialog]);
+
+  let handelProductDelete = async () => {
+    setConfirmShow(true);
+  };
+
+  let handleClose = () => {
+    setConfirmShow(false);
+  };
+
+  let handleProductDeleteYes = async () => {
+    try {
+      let { data } = await deleteProduct(details.productId);
+
+      if (data.Success) {
+        setConfirmShow(false);
+
+        dispatch(refreshCatalog());
+        setDialog(!dialog);
+      }
+    } catch (error) {
+      setConfirmShow(false);
+    }
+  };
+
+  let handelProductEdit = () => {
+    dispatch(setProductId(details.productId));
+    // dispatch(selectedTabIndex(3));
+    history.push("/editProduct");
+  };
+
+  let siteAddress = window.location.href;
+  let finalUrl = siteAddress.slice(
+    siteAddress.lastIndexOf("/") + 1,
+    siteAddress.length
+  );
+
   return (
     <>
       <Container onClick={toggleDialog}>
@@ -106,6 +155,8 @@ const Product = (props) => {
               display: "flex",
               lineHeight: "50px",
               background: "#F5F8FD",
+              width: "100%",
+              justifyContent: "space-between",
             }}
           >
             <ButtonContainer onClick={toggleDialog}>
@@ -114,6 +165,67 @@ const Product = (props) => {
                 <Title style={{ cursor: "pointer" }}>Back</Title>
               </div>
             </ButtonContainer>
+            <Hidden only={["xs", "sm"]}>
+              <div
+                style={{
+                  display: finalUrl === "shopPreview" ? "flex" : "none",
+                }}
+              >
+                <Button
+                  onClick={handelProductEdit}
+                  style={{
+                    marginRight: "10px",
+                    background: "#31BDF4",
+                    color: "white",
+                    width: "100px",
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  onClick={handelProductDelete}
+                  style={{
+                    marginRight: "10px",
+                    background: "#EB5757",
+                    color: "white",
+                    width: "100px",
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </Hidden>
+            <Hidden only={["md", "lg", "xl"]}>
+              <div
+                style={{
+                  display: finalUrl === "shopPreview" ? "flex" : "none",
+                }}
+              >
+                <Button
+                  onClick={handelProductEdit}
+                  style={{
+                    background: "#31BDF4",
+                    color: "white",
+                    width: "60px",
+                    fontSize: "10px",
+                    marginRight: "5px",
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  style={{
+                    background: "#EB5757",
+                    color: "white",
+                    width: "60px",
+                    fontSize: "10px",
+                  }}
+                  onClick={handelProductDelete}
+                >
+                  Delete
+                </Button>
+              </div>
+            </Hidden>
           </div>
         </DialogTitle>
 
@@ -127,6 +239,35 @@ const Product = (props) => {
             shopNameData={props.shopNameData}
           />
         )}
+      </Dialog>
+      <Dialog
+        open={confirmShow}
+        onClose={handleClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          Product Delete Confirmation...
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to delete this product?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} background="#31BDF4" slim width="100px">
+            No
+          </Button>
+          <Button
+            onClick={handleProductDeleteYes}
+            background="#EB5757"
+            slim
+            width="100px"
+            autoFocus
+          >
+            Yes
+          </Button>
+        </DialogActions>
       </Dialog>
     </>
   );

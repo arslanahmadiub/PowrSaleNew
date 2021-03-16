@@ -2,6 +2,7 @@ const initalState = {
   checkoutUserDetail: [],
   checkoutShipingDetail: [],
   checkoutPaymentDetail: [],
+  shopId: "",
 };
 
 export const checkoutReducer = (state = initalState, action) => {
@@ -20,6 +21,11 @@ export const checkoutReducer = (state = initalState, action) => {
       return {
         ...state,
         checkoutPaymentDetail: action.payload,
+      };
+    case "SET_SHOP_ID":
+      return {
+        ...state,
+        shopId: action.payload,
       };
     case "RESET":
       return initalState;

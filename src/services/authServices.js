@@ -9,6 +9,8 @@ let getUserDetailUrl = apiEndPoint + "get_user_details";
 let loginUserFacebookUrl = apiEndPoint + "facebook";
 let loginUserGoogleUrl = apiEndPoint + "google";
 let resetPasswordUrl = apiEndPoint + "reset_password_mail";
+let verifyEmailOrPassUrl = apiEndPoint + "verify_email_or_phone";
+let validateOtpUrl = apiEndPoint + "validate_otp";
 
 export async function createUser(data) {
   return await axios({
@@ -84,6 +86,30 @@ export async function resetPasswordService(data) {
     data: data,
     headers: {
       "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function verifyEmailOrPhone(data, token) {
+  return await axios({
+    method: "post",
+    url: verifyEmailOrPassUrl,
+    data: data,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+  });
+}
+
+export async function validateOtp(data, token) {
+  return await axios({
+    method: "post",
+    url: validateOtpUrl,
+    data: data,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
     },
   });
 }

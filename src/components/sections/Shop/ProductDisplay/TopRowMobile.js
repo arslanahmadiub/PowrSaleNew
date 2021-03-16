@@ -2,7 +2,18 @@ import React from "react";
 import Styled from "styled-components";
 import Grid from "@material-ui/core/Grid";
 import { Facebook, Instagram, Twitter, WhatsApp } from "@material-ui/icons";
+import { makeStyles } from "@material-ui/core/styles";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import Backdrop from "@material-ui/core/Backdrop";
+import { useSelector, useDispatch } from "react-redux";
 
+const useStyles = makeStyles((theme) => ({
+  backdrop: {
+    zIndex: theme.zIndex.drawer + 1,
+    color: "#31BDF4",
+    background: "rgba(182,172,162,0.2)",
+  },
+}));
 const Container = Styled.div`
 padding: 50px 30px;
 border-radius: 0;
@@ -69,6 +80,8 @@ const CompanyLogo = Styled.img`
 `;
 
 const TopRowMobile = (props) => {
+  const classes = useStyles();
+  const shopLoading = useSelector((state) => state.shopPreview.shopLoading);
   const {
     logo,
     name,
@@ -79,40 +92,45 @@ const TopRowMobile = (props) => {
     shopId,
   } = props.data;
   return (
-    <div
-      style={{
-        margin: "0 0 50px 0",
-        padding: "0 15px",
-        borderBottom: "solid #979FAA .5px",
-      }}
-    >
-      <CompanyLogo src={logo && logo} />
+    <>
+      <Backdrop className={classes.backdrop} open={shopLoading}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
 
-      <BrandName>{name && name}</BrandName>
+      <div
+        style={{
+          margin: "0 0 50px 0",
+          padding: "0 15px",
+          borderBottom: "solid #979FAA .5px",
+        }}
+      >
+        <CompanyLogo src={logo && logo} />
 
-      <BrandSlogan>{description && description}</BrandSlogan>
+        <BrandName>{name && name}</BrandName>
 
-      <ShopId>Shop ID: {shopId && shopId}</ShopId>
+        <BrandSlogan>{description && description}</BrandSlogan>
 
-      <BrandBrief>{brief && brief}</BrandBrief>
+        <ShopId>Shop ID: {shopId && shopId}</ShopId>
 
-      <Grid container direction="row" spacing={3}>
-        <Grid item xs={6}>
-          <ContactLabel>Address</ContactLabel>
+        <BrandBrief>{brief && brief}</BrandBrief>
 
-          <Contact>{contacts && contacts.address}</Contact>
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <ContactLabel>Phone</ContactLabel>
+        <Grid container direction="row" spacing={3}>
+          <Grid item xs={6}>
+            <ContactLabel>Address</ContactLabel>
 
-          <Contact>{contacts && contacts.phone}</Contact>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <ContactLabel>Email</ContactLabel>
+            <Contact>{contacts && contacts.address}</Contact>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <ContactLabel>Phone</ContactLabel>
 
-          <Contact>{contacts && contacts.email}</Contact>
-        </Grid>
-        {/* <Grid item xs={12} md={3}>
+            <Contact>{contacts && contacts.phone}</Contact>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <ContactLabel>Email</ContactLabel>
+
+            <Contact>{contacts && contacts.email}</Contact>
+          </Grid>
+          {/* <Grid item xs={12} md={3}>
           <ContactLabel>Social</ContactLabel>
 
           <Contact>
@@ -124,8 +142,9 @@ const TopRowMobile = (props) => {
             </FlexContainer>
           </Contact>
         </Grid> */}
-      </Grid>
-    </div>
+        </Grid>
+      </div>
+    </>
   );
 };
 

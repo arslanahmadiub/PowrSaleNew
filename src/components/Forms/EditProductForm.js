@@ -7,25 +7,26 @@ import Button from "../CustomComponents/Button";
 import MiniFilePicker from "../CustomComponents/MiniFilePicker";
 import Select from "../CustomComponents/Select";
 import FlexContainer from "../CustomComponents/FlexContainer";
-
+import { imageEndPoint } from "../../config.json";
 import Backdrop from "@material-ui/core/Backdrop";
 import { makeStyles } from "@material-ui/core/styles";
 import CircularProgress from "@material-ui/core/CircularProgress";
-
 import { Switch } from "antd";
 import { DataContext } from "../../contexts/DataContext";
-import { WalletContext } from "../../contexts/WalletContext";
 import { productDeliveryTerm } from "../../services/shopServices";
-import { addProduct } from "../../services/shopServices";
-
+import { editProfileDetail } from "../../services/shopServices";
+import { editProduct } from "../../services/shopServices";
+import { deleteProductImage } from "../../services/shopServices";
+import { useHistory } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DeliveryTerms from "./DeliveryTerms";
 import { FacebookShareButton, TwitterShareButton } from "react-share";
-import { LastIndexContext } from "antd/lib/space";
 import Alert from "@material-ui/lab/Alert";
 import _ from "lodash";
+import { selectedTabIndex } from "../../action/shopAction";
+import { setDescriptionModel } from "../../action/shopAction";
 
 const useStyles = makeStyles((theme) => ({
   backdrop: {
@@ -34,13 +35,6 @@ const useStyles = makeStyles((theme) => ({
     background: "rgba(182,172,162,0.2)",
   },
 }));
-
-const ImageContainer = Styled.div`
-    height: 100px;
-    border: 1px grey dashed;
-    padding: 2px;
-    position: relative;
-`;
 
 const Container = Styled.div`
 padding: 50px 30px;
@@ -52,14 +46,16 @@ min-height: 80%;
 }
 `;
 
-export default function AddProductForm(props) {
+export default function EditProductForm(props) {
   const [clearImageData, setClearImageData] = useState(false);
   const shopIds = useSelector((state) => state.shopPreview.shopIdCollections);
+  const history = useHistory();
 
   const classes = useStyles();
 
   let dispatch = useDispatch();
   let [loading, setLoading] = useState(false);
+  const productId = useSelector((state) => state.shopPreview.productId);
 
   const [inputList, setInputList] = useState([
     {
@@ -68,26 +64,82 @@ export default function AddProductForm(props) {
     },
   ]);
 
-  const [cityLocationData, setCityLocationData] = useState([]);
   const [imagesData, setImagesData] = useState([]);
-
+  const [deletedImages, setDeletedImages] = useState([]);
+  const [firstFunction, setFirstFunction] = useState(true);
+  const [serverImageList, setServerImageList] = useState([]);
   const [serviceFee, setServiceFee] = useState(0);
   const selectedShopId = useSelector(
     (state) => state.shopPreview.selectedShopId
   );
 
-  const [inputData, setInputData] = useState({
+  let [data, setData] = useState({
     productName: "",
     productPrice: "",
     productDescription: "",
     productCountry: "",
-    productCity: "",
-    productCurrency: "",
+
     instaGram: false,
     facebook: false,
     twitter: false,
   });
-  const { countryList, currencies } = React.useContext(DataContext);
+
+  let getProduct = async (pId) => {
+    setFirstFunction(false);
+    try {
+      setLoading(true);
+      let { data } = await editProfileDetail(pId);
+
+      setLoading(false);
+      if (data.Success) {
+        setData({
+          productName: data.Details[0].product_name,
+          productPrice: data.Details[0].price,
+          productDescription: data.Details[0].description,
+          productCountry: data.Details[0].delivery_terms[0].delivery_country,
+          instaGram: false,
+          facebook: false,
+          twitter: false,
+        });
+
+        let value = parseFloat(data.Details[0].price) * 0.05;
+        setServiceFee(value.toFixed(3));
+
+        let inputLists = [];
+
+        data.Details[0].delivery_terms.map((item, index) => {
+          let data = {
+            city: item.delivery_location,
+            price: item.delivery_price,
+          };
+          inputLists.push(data);
+        });
+        setInputList(inputLists);
+
+        let imageList = [];
+        data.Details[0].images.map((item, index) => {
+          let urlObject = {
+            url: imageEndPoint + item.image,
+            side: "server",
+            imageId: item.image,
+          };
+          imageList.push(urlObject);
+        });
+
+        setServerImageList(imageList);
+      }
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (firstFunction) {
+      getProduct(productId);
+    }
+  }, []);
+
+  const { countryList } = React.useContext(DataContext);
 
   let {
     productName,
@@ -95,24 +147,33 @@ export default function AddProductForm(props) {
     productDescription,
     productCountry,
 
+    instaGram,
     facebook,
     twitter,
-  } = inputData;
+  } = data;
 
-  useEffect(() => {
-    if (facebook) {
-      facebookClick();
+  let onChange = (e) => {
+    setData({ ...data, [e.target.name]: e.target.value });
+    if (e.target.name === "productPrice") {
+      let value = parseFloat(e.target.value) * 0.05;
+      setServiceFee(value.toFixed(3));
     }
-  }, [facebook]);
+  };
 
-  useEffect(() => {
-    if (twitter) {
-      twitterClick();
-    }
-  }, [twitter]);
+  const emailToast = () => {
+    toast.success("Product Update!", {
+      position: "top-right",
+      autoClose: 5000,
+      draggable: false,
+    });
+  };
+
+  const [error, setError] = useState(null);
+
+  let userToken = localStorage.getItem("token");
 
   let clearForm = () => {
-    setInputData({
+    setData({
       productName: "",
       productPrice: "",
       productDescription: "",
@@ -137,40 +198,11 @@ export default function AddProductForm(props) {
     ]);
   };
 
-  const [error, setError] = useState(null);
-
-  let shareAbleData =
-    "Product Name = " +
-    productName +
-    "\n" +
-    "Product Price = " +
-    productPrice +
-    "\n" +
-    "Product Description = " +
-    productDescription;
-
-  let userToken = localStorage.getItem("token");
-
-  const emailToast = () => {
-    toast.success("Product Added!", {
-      position: "top-right",
-      autoClose: 5000,
-      draggable: false,
-    });
-  };
-
-  let facebookClick = () => {
-    document.getElementById("facebookShare").click();
-  };
-  let twitterClick = () => {
-    document.getElementById("twitterShare").click();
-  };
-
-  const processWidrawal = async (event) => {
+  const updateProductFunction = async (event) => {
     event.preventDefault();
     setError(null);
     let form_data = new FormData();
-    await form_data.set("shop", selectedShopId);
+
     await form_data.set("product_name", productName);
     await form_data.set("description", productDescription);
     await form_data.set("price", productPrice);
@@ -186,10 +218,7 @@ export default function AddProductForm(props) {
         delivery_location: item.city,
         delivery_price: item.price,
       };
-      if (
-        newData.delivery_location.length > 0 &&
-        newData.delivery_price.length > 0
-      ) {
+      if (newData.delivery_location && newData.delivery_price) {
         newDeliveryTerm.push(newData);
       }
     });
@@ -200,8 +229,10 @@ export default function AddProductForm(props) {
       setError("Maximum of 30 characters allowed in product name...");
     } else if (productPrice.length < 1) {
       setError("Enter product price..");
-    } else if (productPrice.length > 5) {
-      setError("Maximum of 5 characters allowed in product price...");
+    } else if (productPrice < 1) {
+      setError("Price must be greater than 0... ");
+    } else if (productPrice.length > 8) {
+      setError("Maximum of 8 characters allowed in product price...");
     } else if (productDescription.length < 1) {
       setError("Enter product description...");
     } else if (productDescription.length > 300) {
@@ -212,23 +243,35 @@ export default function AddProductForm(props) {
       setError("Enter product city...");
     } else if (inputList[0].price.length < 1) {
       setError("Enter product delivery price...");
-    } else if (!imagesData) {
-      setError("Select Product Images...");
     } else {
       try {
         setLoading(true);
-        let { data } = await addProduct(form_data, userToken);
+        let { data } = await editProduct(productId, form_data, userToken);
+
         if (data.Success) {
-          let productId = data.ID;
           let finalData = {
             product_id: productId,
             delivery_terms: newDeliveryTerm,
           };
           try {
             let result = await productDeliveryTerm(finalData, userToken);
+
+            if (deletedImages && deletedImages.length > 0) {
+              deletedImages.forEach((element) => {
+                try {
+                  deleteProductImage(element);
+                } catch (error) {}
+              });
+            }
+
             emailToast();
             clearForm();
             setLoading(false);
+            dispatch(selectedTabIndex(1));
+
+            setTimeout(() => {
+              history.push("/shopPreview");
+            }, 1000);
           } catch (ex) {
             setLoading(false);
 
@@ -250,37 +293,25 @@ export default function AddProductForm(props) {
     }
   };
 
-  let getImages = (value) => {
-    setImagesData(value);
-  };
-  useEffect(() => {
-    getImages();
-  }, [props.getFiles]);
-
-  let ToggleFacebook = (e) => {
-    setInputData({ ...inputData, facebook: e });
-  };
-  let ToggleTwitter = (e) => {
-    setInputData({ ...inputData, twitter: e });
-  };
-
-  let handelSharing = () => {};
-
-  let onChange = (e) => {
-    setInputData({ ...inputData, [e.target.name]: e.target.value });
-
-    if (e.target.name === "productPrice") {
-      let value = parseFloat(e.target.value) * 0.05;
-      setServiceFee(value.toFixed(3));
-    }
-  };
-
   let siteAddress = window.location.href;
 
   let finalUrl =
     siteAddress.slice(0, siteAddress.lastIndexOf("/") + 1) +
     "shop/" +
     selectedShopId;
+
+  let getImages = (value) => {
+    setImagesData(value);
+  };
+  let deleteImageIds = (value) => {
+    setDeletedImages(value);
+  };
+  useEffect(() => {
+    getImages();
+  }, [props.getFiles]);
+  useEffect(() => {
+    deleteImageIds();
+  }, [props.getDeletedImages]);
 
   let onHandelChange = (e, i) => {
     let { name, value } = e.target;
@@ -305,15 +336,51 @@ export default function AddProductForm(props) {
     setInputList(list);
   };
 
+  useEffect(() => {
+    if (facebook) {
+      facebookClick();
+    }
+  }, [facebook]);
+
+  useEffect(() => {
+    if (twitter) {
+      twitterClick();
+    }
+  }, [twitter]);
+
+  let shareAbleData =
+    "Product Name = " +
+    productName +
+    "\n" +
+    "Product Price = " +
+    productPrice +
+    "\n" +
+    "Product Description = " +
+    productDescription;
+
+  let facebookClick = () => {
+    document.getElementById("facebookShare").click();
+  };
+  let twitterClick = () => {
+    document.getElementById("twitterShare").click();
+  };
+
+  let handelSharing = () => {};
+
+  let ToggleFacebook = (e) => {
+    setData({ ...data, facebook: e });
+  };
+  let ToggleTwitter = (e) => {
+    setData({ ...data, twitter: e });
+  };
+
   return (
     <>
-      {shopIds.length < 1 || selectedShopId.length < 1 ? (
+      {!productId ? (
         <Container>
           <h2>
-            Sorry!!! you don’t have any shop listed yet click on the
-            <span style={{ color: "#31BDF4" }}> “Shop Profile” </span>tab to
-            create shop. Once shop is created you can start sharing your shop
-            link or product link.
+            Sorry!!! you don’t have any product selected. Go back or click on
+            cancel button and click on edit product...
           </h2>
         </Container>
       ) : (
@@ -334,6 +401,8 @@ export default function AddProductForm(props) {
                 <MiniFilePicker
                   getFiles={(value) => getImages(value)}
                   clearImages={clearImageData}
+                  serverImage={serverImageList}
+                  getDeletedImages={(value) => deleteImageIds(value)}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -363,6 +432,7 @@ export default function AddProductForm(props) {
                           type="number"
                           name="productPrice"
                           onChange={onChange}
+                          value={productPrice}
                         />
                       </Grid>
                     </Grid>
@@ -375,6 +445,7 @@ export default function AddProductForm(props) {
                       required
                       name="productDescription"
                       onChange={onChange}
+                      value={productDescription}
                     />
                   </Grid>
                 </Grid>
@@ -427,6 +498,7 @@ export default function AddProductForm(props) {
                   </div>
                 </FlexContainer>
               </Grid>
+
               <Grid item xs={12}>
                 <hr />
 
@@ -471,7 +543,7 @@ export default function AddProductForm(props) {
               </Grid>
 
               <Grid item xs={12} sm={6} md={4}>
-                <Button onClick={processWidrawal}>Add Product</Button>
+                <Button onClick={updateProductFunction}>Update Product</Button>
               </Grid>
             </Grid>
           </div>

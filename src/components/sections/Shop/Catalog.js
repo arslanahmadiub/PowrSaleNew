@@ -41,6 +41,8 @@ export default function Catalog(props) {
   const selectedShopId = useSelector(
     (state) => state.shopPreview.selectedShopId
   );
+  const refreshState = useSelector((state) => state.shopPreview.refreshCatalog);
+
   let getCatalog = async () => {
     setLoadingShow(true);
     let { data } = await getCatalogData(selectedShopId);
@@ -83,6 +85,11 @@ export default function Catalog(props) {
       setShowMessageNoProduct(true);
     }
   };
+
+  useEffect(() => {
+    getCatalog();
+  }, [refreshState]);
+
   useEffect(() => {
     setDumpData([]);
     if (selectedShopId) {

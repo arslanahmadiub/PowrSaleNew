@@ -45,3 +45,25 @@ a {
   border: 3px solid lightblue;
   outline-width: 0px;
 }
+
+.hide {
+  display: none !important;
+}
+
+.otp {
+  outline: 0;
+  border-width: 0 0 1px;
+  border-color: #948e8e;
+  width: 100%;
+  font-size: 25px;
+  text-align: center;
+  background: transparent;
+}
+.otp:focus {
+  border-color: rgb(92, 84, 84);
+}
+.bottomVerificaton {
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}

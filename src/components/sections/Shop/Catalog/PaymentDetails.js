@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Styled from "styled-components";
 import Grid from "@material-ui/core/Grid";
 import Input from "../../../CustomComponents/Input";
@@ -42,6 +42,7 @@ const ChangeButton = Styled.div`
 const PaymentDetails = (props) => {
   const [state, setState] = React.useState({ quantity: 1 });
   const priceDetail = useSelector((state) => state.checkout.checkoutUserDetail);
+  const [powrSaleCurrencyType, setPowrSaleCurrencyType] = useState("GHS");
   const { countryList, currencies } = React.useContext(DataContext);
   let [loading, setLoading] = useState(false);
   const [error, seterror] = useState(false);
@@ -57,6 +58,8 @@ const PaymentDetails = (props) => {
   const checkOutShippingDetail = useSelector(
     (state) => state.checkout.checkoutShipingDetail
   );
+
+  const userBalance = checkOutUserDetail.balance;
 
   const history = useHistory();
 
@@ -76,7 +79,9 @@ const PaymentDetails = (props) => {
   let { cardNumber, cardName, expiryDate, csv } = cardData;
   let { momoNetwork, mobileMoneyNumber, mobileMoneyName } = mobileMoneyData;
 
-  let [selectedButton, setSelectedButton] = useState(false);
+  let [selectedButton, setSelectedButton] = useState(true);
+
+  const [paymentMethod, setPaymentMethod] = useState("powrsale_balance");
 
   const processPayment = async (event) => {
     event.preventDefault();
@@ -91,18 +96,20 @@ const PaymentDetails = (props) => {
     form_data.set("delivery_location", checkOutShippingDetail.deliveryLocation);
     form_data.set("buyer_address", checkOutShippingDetail.address);
     form_data.set("additional_notes", checkOutShippingDetail.additionalNotes);
-    form_data.set("payment_option", "mobile_money");
+    form_data.set("payment_option", paymentMethod);
     form_data.set("product_id", checkOutUserDetail.productId);
     form_data.set("shop_id", checkOutUserDetail.shopId);
     form_data.set("amount", checkOutShippingDetail.finalCostWithCharges);
+    form_data.set("balance", userBalance);
     form_data.set("delivery_amount", checkOutShippingDetail.deliveryCharges);
-    // form_data.set("amount", "1");
+
     form_data.set("momo_network", momoNetwork);
     form_data.set("mobile_money_number", mobileMoneyNumber);
 
     try {
       setLoading(true);
       let { data } = await checkOut(form_data, userToken);
+
       if (data.Success) {
         setLoading(false);
         history.push("/transactions");
@@ -146,6 +153,7 @@ const PaymentDetails = (props) => {
   };
 
   let handelMobileMoney = () => {
+    setPaymentMethod("mobile_money");
     setSelectedButton(false);
     setCardData({
       cardNumber: "",
@@ -154,7 +162,9 @@ const PaymentDetails = (props) => {
       csv: "",
     });
   };
-  let handelCard = () => {
+  let handelCard = (e) => {
+    setPaymentMethod("powrsale_balance");
+
     setSelectedButton(true);
     setMobileMoneyData({
       momoNetwork: "",
@@ -166,6 +176,11 @@ const PaymentDetails = (props) => {
   let handelMobileChnage = (e) => {
     setMobileMoneyData({ ...mobileMoneyData, [e.target.name]: e.target.value });
   };
+
+  let handelPowrSaleCurrency = (e) => {
+    setPowrSaleCurrencyType(e.target.value);
+  };
+
   let handelCardChange = (e) => {
     setCardData({ ...cardData, [e.target.name]: e.target.value });
   };
@@ -189,6 +204,16 @@ const PaymentDetails = (props) => {
       <Grid container direction="row" spacing={3}>
         <Grid item style={{ marginLeft: "1%" }}>
           {selectedButton ? (
+            <Button onClick={handelCard}>Powrsale Balance</Button>
+          ) : (
+            <Button outlined faded onClick={handelCard}>
+              Powrsale Balance
+            </Button>
+          )}
+        </Grid>
+
+        <Grid item>
+          {selectedButton ? (
             <Button outlined faded onClick={handelMobileMoney}>
               Mobile Money
             </Button>
@@ -196,16 +221,6 @@ const PaymentDetails = (props) => {
             <Button onClick={handelMobileMoney}>Mobile Money</Button>
           )}
         </Grid>
-
-        {/* <Grid item>
-          {selectedButton ? (
-            <Button onClick={handelCard}>Card</Button>
-          ) : (
-            <Button outlined faded onClick={handelCard}>
-              Card
-            </Button>
-          )}
-        </Grid> */}
       </Grid>
       <Grid item>
         <form
@@ -260,44 +275,91 @@ const PaymentDetails = (props) => {
               </Grid>
             </Grid>
           ) : (
-            <Grid container direction="row" spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <Input
-                  type={"number"}
-                  placeholder="0000 0000 0000 0000"
-                  label="Card Number"
-                  value={cardNumber}
-                  name="cardNumber"
-                  onChange={handelCardChange}
+            // <Grid container direction="row" spacing={3}>
+            //   <Grid item xs={12} sm={6}>
+            //     <Input
+            //       type={"number"}
+            //       placeholder="0000 0000 0000 0000"
+            //       label="Card Number"
+            //       value={cardNumber}
+            //       name="cardNumber"
+            //       onChange={handelCardChange}
+            //     />
+            //   </Grid>
+            //   <Grid item xs={12} sm={6}>
+            //     <Input
+            //       type={"text"}
+            //       placeholder="Full Name"
+            //       label="Card Name"
+            //       value={cardName}
+            //       name="cardName"
+            //       onChange={handelCardChange}
+            //     />
+            //   </Grid>
+            //   <Grid item xs={12} sm={6}>
+            //     <DatePicker
+            //       label="Epiry Date"
+            //       name="expiryDate"
+            //       value={expiryDate}
+            //       onChange={handelCardChange}
+            //     />
+            //   </Grid>
+            //   <Grid item xs={12} sm={6}>
+            //     <FancyInput
+            //       type={"number"}
+            //       placeholder="..."
+            //       label="CVV/ CSV"
+            //       value={csv}
+            //       name="csv"
+            //       onChange={handelCardChange}
+            //     />
+            //   </Grid>
+
+            //   <Grid
+            //     item
+            //     xs={12}
+            //     style={{ marginBottom: "10px", marginTop: "10px" }}
+            //   >
+            //     {errorMessage && errorMessage}
+            //   </Grid>
+
+            //   <Grid item xs={12} sm={6}>
+            //     <Button type="submit">Pay</Button>
+            //   </Grid>
+            // </Grid>
+            <Grid
+              container
+              direction="row"
+              spacing={3}
+              style={{ marginTop: "1%" }}
+            >
+              <Grid item xs={6} sm={2}>
+                <Select
+                  id="type"
+                  placeholder="Currency Type"
+                  list={["GHS"]}
+                  value={powrSaleCurrencyType}
+                  name="powrSaleCurrency"
+                  onChange={handelPowrSaleCurrency}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <Input
-                  type={"text"}
-                  placeholder="Full Name"
-                  label="Card Name"
-                  value={cardName}
-                  name="cardName"
-                  onChange={handelCardChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <DatePicker
-                  label="Epiry Date"
-                  name="expiryDate"
-                  value={expiryDate}
-                  onChange={handelCardChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FancyInput
-                  type={"number"}
-                  placeholder="..."
-                  label="CVV/ CSV"
-                  value={csv}
-                  name="csv"
-                  onChange={handelCardChange}
-                />
+              <Grid item xs={6} sm={10}>
+                <h2
+                  style={{
+                    color:
+                      parseFloat(userBalance) <
+                      parseFloat(checkOutShippingDetail.finalCostWithCharges)
+                        ? "red"
+                        : "black",
+                    opacity:
+                      parseFloat(userBalance) <
+                      parseFloat(checkOutShippingDetail.finalCostWithCharges)
+                        ? "0.7"
+                        : "1",
+                  }}
+                >
+                  {userBalance && userBalance}
+                </h2>
               </Grid>
 
               <Grid
@@ -309,7 +371,23 @@ const PaymentDetails = (props) => {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <Button type="submit">Pay</Button>
+                <Button
+                  type="submit"
+                  disable={
+                    parseFloat(userBalance) <
+                    parseFloat(checkOutShippingDetail.finalCostWithCharges)
+                      ? true
+                      : false
+                  }
+                  faded={
+                    parseFloat(userBalance) <
+                    parseFloat(checkOutShippingDetail.finalCostWithCharges)
+                      ? true
+                      : false
+                  }
+                >
+                  Pay
+                </Button>
               </Grid>
             </Grid>
           )}

@@ -79,6 +79,7 @@ export default function WithdrawalForm({ type, externalFunction, ...props }) {
         mobileMoneyClientName: "",
       });
       setLoadingButton(false);
+      props.walletFunctionCall(false);
     } catch (error) {
       if (
         error.response.data.Success === false &&

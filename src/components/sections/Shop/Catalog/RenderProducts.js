@@ -49,7 +49,7 @@ const RenderProducts = (props) => {
                 <Grid
                   item
                   xs={12}
-                  sm={4}
+                  sm={showRightSideBar ? 6 : 4}
                   md={showRightSideBar ? 4 : 3}
                   key={index}
                 >

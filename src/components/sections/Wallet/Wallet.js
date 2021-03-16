@@ -15,12 +15,12 @@ import { WalletContext } from "../../../contexts/WalletContext";
 import DesktopHeaderRow from "../../CustomComponents/DesktopHeaderRow";
 import TwinInputSelect from "../../CustomComponents/TwinInputSelect";
 import { DataContext } from "../../../contexts/DataContext";
-
 import { getWallet } from "../../../services/walletServices";
 import { cashOut } from "../../../services/walletServices";
 import { Spin } from "antd";
 import CompleteProfile from "../Profile/CompleteProfile";
 import Alert from "@material-ui/lab/Alert";
+import { deletWallet } from "../../../services/walletServices";
 
 const Title = Styled.div`
     font-size: 22px;
@@ -42,11 +42,13 @@ const NewCardButton = Styled.div`
 
 const Wallet = (props) => {
   const [selectedCard, setSelectedCard] = React.useState(null);
+  const [showWithDrawlForm, setShowWithDrawlForm] = useState(false);
   const [stage, setStage] = React.useState(0);
   const [type, setType] = React.useState("");
   // const walletCard = useSelector((state) => state.wallet.card);
   const [walletErrorMessage, setWalletErrorMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [walletId, setWalletId] = useState(null);
   const [cashAmount, setCashAmount] = useState("");
   const [cashLoading, setCashLoading] = useState(false);
@@ -56,7 +58,7 @@ const Wallet = (props) => {
   const [percentValue, setPercentValue] = useState(null);
   function advanceStage() {
     setSelectedCard(null);
-
+    setShowWithDrawlForm(false);
     if (stage < 3) {
       setStage(stage + 1);
     }
@@ -193,6 +195,7 @@ const Wallet = (props) => {
 
   let walletCall = (value) => {
     setWalletCallData(value);
+    setStage(0);
   };
 
   useEffect(() => {
@@ -202,6 +205,31 @@ const Wallet = (props) => {
   useEffect(() => {
     walletCall();
   }, [props.walletFunctionCall]);
+
+  let handelWithdrawaShow = () => {
+    setShowWithDrawlForm(true);
+  };
+
+  let handelCardDelete = async () => {
+    setShowWithDrawlForm(false);
+    try {
+      let { data } = await deletWallet(selectedCard.id);
+      if (data.Success) {
+        setSuccessMessage(
+          <Alert variant="filled" severity="success">
+            Wallet deleted successfully...
+          </Alert>
+        );
+        setSelectedCard(null);
+        getWalletData();
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
+      }
+    } catch (error) {
+      setErrorMessage("Some thing went wrong or server error...");
+    }
+  };
 
   return (
     <>
@@ -321,8 +349,26 @@ const Wallet = (props) => {
           </HorizontalScrollingContainer>
         </Col>
       </Row>
-
+      {successMessage && successMessage}
       {selectedCard && (
+        <Row gutter={[16, 24]}>
+          <Space size="large">
+            <Button onClick={handelWithdrawaShow} faded={!showWithDrawlForm}>
+              Withdraw
+            </Button>
+            <Button
+              background={showWithDrawlForm ? "#F6E5E4" : "#EB5757"}
+              faded={showWithDrawlForm}
+              color="#fff"
+              onClick={handelCardDelete}
+            >
+              Delete
+            </Button>
+          </Space>
+        </Row>
+      )}
+
+      {showWithDrawlForm && (
         <React.Fragment>
           <Row gutter={[0, 8]}>
             <Col span={24}>
@@ -428,6 +474,7 @@ const Wallet = (props) => {
                 type={type}
                 error={(value) => walletError(value)}
                 walletFunctionCall={(value) => walletCall(value)}
+                walletFunctionCallData={walletCallData}
               />
             </Col>
           </Row>

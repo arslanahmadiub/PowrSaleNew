@@ -291,7 +291,22 @@ const ShopProfileForm = (props) => {
           </Alert>
         );
       } else {
-        setOpen(true);
+        const brandDetails = {
+          logo: fileData,
+          name: name,
+          brief: bio,
+          social: { fb: facebook, ig: instagram, wp: whatsapp, tt: twitter },
+          contacts: {
+            phone: phone,
+            email: email,
+            address: address,
+          },
+          description: type,
+          shopId: "",
+        };
+        dispatch(shopPreview(brandDetails));
+        dispatch(shopPreviewDialog(true));
+        dispatch(saveShopData(state));
       }
     }
   };

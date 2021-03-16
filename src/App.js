@@ -16,6 +16,9 @@ import { shopIdsAction } from "./action/shopAction";
 
 import { getShopIds } from "./services/dashboardService";
 import Forgotpass from "./components/sections/ForgotPassword/Forgotpass";
+import EmailOtp from "./components/auth/EmailOtp";
+import MobileOtp from "./components/auth/MobileOtp";
+import EditProduct from "./components/sections/Shop/EditProduct";
 
 function App() {
   let userToken = localStorage.getItem("token");
@@ -62,6 +65,15 @@ function App() {
         </Route>
         <Route path="/resetPass">
           <Forgotpass />
+        </Route>
+        <Route path="/mailOtp">
+          <EmailOtp />
+        </Route>
+        <Route path="/mobileOtp">
+          <MobileOtp />
+        </Route>
+        <Route path="/editProduct">
+          <EditProduct />
         </Route>
         <Home>
           <Switch>

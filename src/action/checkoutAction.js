@@ -18,3 +18,10 @@ export const paymentAction = (data) => {
     payload: data,
   };
 };
+
+export const saveShopId = (data) => {
+  return {
+    type: "SET_SHOP_ID",
+    payload: data,
+  };
+};

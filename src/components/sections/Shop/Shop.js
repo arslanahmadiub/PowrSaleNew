@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import Button from "../../CustomComponents/Button";
 import ShopProfileForm from "../../Forms/ShopProfileForm";
 import AddProductForm from "../../Forms/AddProductForm";
+
 import Tabs from "../../CustomComponents/Tabs";
 import Catalog from "./Catalog";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Backdrop from "@material-ui/core/Backdrop";
+import { ToastContainer, toast } from "react-toastify";
 
 import DesktopHeaderRow from "../../CustomComponents/DesktopHeaderRow";
 import Grid from "@material-ui/core/Grid";
@@ -20,13 +22,13 @@ import { selectedShopId } from "../../../action/shopAction";
 import { selectedShopName } from "../../../action/shopAction";
 import { shopIdsAction } from "../../../action/shopAction";
 import { saveShopData } from "../../../action/shopAction";
+import { shopCreateLoading } from "../../../action/shopAction";
 import { getShopIds } from "../../../services/dashboardService";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import CompleteProfile from "../Profile/CompleteProfile";
 import { Hidden } from "@material-ui/core";
-
+import { useHistory } from "react-router";
 import { makeStyles } from "@material-ui/core/styles";
-
 import FileCopyIcon from "@material-ui/icons/FileCopy";
 import move from "lodash-move";
 
@@ -44,6 +46,7 @@ export default function Shop(props) {
   const [enable, setEnable] = useState(false);
   let [loading, setLoading] = useState(false);
   const classes = useStyles();
+  const history = useHistory();
 
   const [open, setOpen] = React.useState(false);
 
@@ -105,7 +108,13 @@ export default function Shop(props) {
       dispatch(shopIdsAction(arr));
     }
   };
-
+  const emailToast = () => {
+    toast.success("Shop Created...", {
+      position: "top-right",
+      autoClose: 5000,
+      draggable: false,
+    });
+  };
   let handelPublishShop = async () => {
     if (Object.keys(createShop).length > 0) {
       let {
@@ -138,13 +147,15 @@ export default function Shop(props) {
       form_data.append("whatsapp_number", whatsapp);
 
       try {
-        setLoading(true);
-
+        dispatch(shopCreateLoading(true));
         let { data } = await shopCreate(form_data, userToken);
 
         if (data.Success) {
-          setLoading(false);
-
+          dispatch(shopCreateLoading(false));
+          emailToast();
+          setTimeout(() => {
+            dispatch(shopPreviewDialog(false));
+          }, 1000);
           let shopPreview = {
             logo: logoUrl,
             name: name,
@@ -159,25 +170,34 @@ export default function Shop(props) {
             shopId: data.ID,
           };
           setPublishData(shopPreview);
-          setLoading(false);
+          dispatch(shopCreateLoading(false));
+
           dispatch(clearFormData(true));
           shopIdsCollectionForCreateShop();
           togglePublish(true);
           dispatch(saveShopData({}));
         }
       } catch (error) {
-        setLoading(false);
+        dispatch(shopCreateLoading(false));
       }
     }
   };
 
+  let siteAddress = window.location.href;
+  let copyAddress =
+    siteAddress.slice(0, siteAddress.lastIndexOf("/") + 1) +
+    "shop/" +
+    selectedShop;
+
+  let handelViewShop = () => {
+    window.open(copyAddress, "_blank");
+  };
+
   let publicButton = () => {
-    if (Object.keys(createShop).length > 0) {
-      return <Button onClick={handelPublishShop}>PUBLISH A SHOP</Button>;
-    } else {
+    if (selectedShop) {
       return (
-        <Button disable faded>
-          PUBLISH A SHOP
+        <Button onClick={handelViewShop} width="170px" height="20px">
+          VIEW SHOP
         </Button>
       );
     }
@@ -189,11 +209,6 @@ export default function Shop(props) {
       setCopyShopStyle(false);
     }, 2000);
   };
-  let siteAddress = window.location.href;
-  let copyAddress =
-    siteAddress.slice(0, siteAddress.lastIndexOf("/") + 1) +
-    "shop/" +
-    selectedShop;
 
   return (
     <div ref={shopWidthRef}>
@@ -358,18 +373,19 @@ export default function Shop(props) {
       {/* Preveiw version */}
       <Dialog open={preview} fullScreen>
         <DialogActions style={{ background: "#f5f8fd" }}>
-          <Button onClick={togglePreview}>Exit PREVIEW</Button>
+          <Button onClick={togglePreview}>Edit Profile</Button>
+          <Button onClick={handelPublishShop}>Publish Shop</Button>
         </DialogActions>
         <ProductDisplay shopData={createShopData.shopPreview} />
       </Dialog>
 
       {/* The published version */}
-      <Dialog open={publish} fullScreen onClose={() => togglePublish(false)}>
+      {/* <Dialog open={publish} fullScreen onClose={() => togglePublish(false)}>
         <DialogActions>
           <Button onClick={() => togglePublish(false)}>Exit PREVIEW</Button>
         </DialogActions>
         <ProductDisplay shopData={publishData} />
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }

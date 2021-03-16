@@ -7,6 +7,7 @@ let userToken = localStorage.getItem("token");
 let addWalletUrl = apiEndPoint + "add_wallet";
 let getWalletUrl = apiEndPoint + "account_money_details";
 let cashoutUrl = apiEndPoint + "cash_out";
+let deleteWalletUrl = apiEndPoint + "delete_wallet/";
 
 export async function addWallet(data, token) {
   return await axios({
@@ -40,5 +41,12 @@ export async function cashOut(data, token) {
       "Content-Type": "multipart/form-data",
       Authorization: token,
     },
+  });
+}
+
+export async function deletWallet(walletId) {
+  return await axios({
+    method: "post",
+    url: deleteWalletUrl + walletId,
   });
 }

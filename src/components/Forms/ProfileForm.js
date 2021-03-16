@@ -1,20 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
-//import styled from "styled-components";
+
 import Grid from "@material-ui/core/Grid";
 import Input from "../CustomComponents/Input";
 import Button from "../CustomComponents/Button";
-import DatePicker from "../CustomComponents/DatePicker";
+import { Button as MaterialButton } from "@material-ui/core";
+import verification from "../../assets/images/verification.svg";
+
 import PasswordInput from "../CustomComponents/PasswordInput";
 import CustomLink from "../CustomComponents/CustomLink";
 import { completeUserProfile } from "../../services/authServices";
 import { getFullUserDetails } from "../../services/authServices";
+import { verifyEmailOrPhone } from "../../services/authServices";
+import { validateOtp } from "../../services/authServices";
 import { imageEndPoint } from "../../config.json";
 import {
   shopProfileFetchLoading,
   userProfileSaveLoading,
 } from "../../action/dashboardAction";
 import { profileDialogAction } from "../../action/authAction";
-import { reCallProfileApi } from "../../action/dashboardAction";
+
 import { setProfileImage } from "../../action/authAction";
 import { useSelector, useDispatch } from "react-redux";
 import Alert from "@material-ui/lab/Alert";
@@ -49,8 +53,12 @@ const ProfileForm = (props) => {
   } = profileData;
   let [profileAvatar, setProfielAvatar] = useState(null);
   let widthRef = useRef();
-
+  let phoneRef = useRef(null);
+  let emailRef = useRef(null);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  const [emailVerification, setEmailVerification] = useState(false);
+  const [mobileVerification, setMobileVerification] = useState(false);
 
   const profileLoading = useSelector(
     (state) => state.dashboard.profileDataSaveLoading
@@ -70,6 +78,7 @@ const ProfileForm = (props) => {
     dispatch(shopProfileFetchLoading(true));
 
     let { data } = await getFullUserDetails(userToken);
+
     dispatch(shopProfileFetchLoading(false));
 
     if (data.Success) {
@@ -89,10 +98,40 @@ const ProfileForm = (props) => {
     getProfileInfo();
   }, []);
 
+  const [otp, setOtp] = useState({
+    otp1: "",
+    otp2: "",
+    otp3: "",
+    otp4: "",
+  });
+
+  let { otp1, otp2, otp3, otp4 } = otp;
+  let otpLength = otp1 + otp2 + otp3 + otp4;
+
   let handelProfileDataChange = (e) => {
     setProfileData({ ...profileData, [e.target.name]: e.target.value });
   };
 
+  let verifyId = async (userData) => {
+    try {
+      let { data } = await verifyEmailOrPhone(userData, userToken);
+      if (data.Success) {
+        if ("email" in userData) {
+          setEmailVerification(data.is_verified);
+        } else {
+          setMobileVerification(data.is_verified);
+        }
+      }
+    } catch (error) {}
+  };
+  useEffect(() => {
+    if (email.length > 0) {
+      verifyId({ email: email });
+    }
+    if (phone.length > 0) {
+      verifyId({ phone: phone });
+    }
+  }, [profileData]);
   const saveProfile = async (event) => {
     event.preventDefault();
     let profileDataForm = new FormData();
@@ -168,6 +207,119 @@ const ProfileForm = (props) => {
     setCalander(!calander);
   };
 
+  const [emailVerificationShow, setEmailVerificationShow] = useState(false);
+  const [mobileVerificationShow, setMobileVerificationShow] = useState(false);
+  const [verifiedMessageShow, setVerifiedMessageShow] = useState(false);
+  const [phoneOrMobile, setPhoneOrMobile] = useState(false);
+
+  let verifiedData = {
+    status: true,
+  };
+  let unVerifiedData = {
+    status: false,
+  };
+  let handelChange = (e) => {
+    setOtp({ ...otp, [e.target.name]: e.target.value });
+  };
+
+  let handelPropShopInput = (value) => {
+    if (value === "phone") {
+      setEmailVerificationShow(false);
+      setMobileVerificationShow(true);
+    } else {
+      setMobileVerificationShow(false);
+      setEmailVerificationShow(true);
+    }
+  };
+
+  let handelVerifyEmail = async () => {
+    let convertOtp = otp1 + otp2 + otp3 + otp4;
+    let convertedOtp = parseInt(convertOtp);
+
+    let otpData = {
+      email: email,
+      otp: convertedOtp,
+    };
+    let mobileOtpData = {
+      phone: phone,
+      otp: convertedOtp,
+    };
+
+    if (emailVerificationShow) {
+      try {
+        let { data } = await validateOtp(otpData, userToken);
+        if (data.Success) {
+          verifyId({ email: email });
+
+          setMobileVerificationShow(false);
+          setEmailVerificationShow(false);
+          setVerifiedMessageShow(true);
+          setOtp({
+            otp1: "",
+            otp2: "",
+            otp3: "",
+            otp4: "",
+          });
+          setTimeout(() => {
+            setVerifiedMessageShow(false);
+          }, 3000);
+        }
+      } catch (error) {
+        if (error.response.data.Success === false) {
+          setErrorMessage("Invalid OTP!");
+        }
+      }
+    } else {
+      try {
+        let { data } = await validateOtp(mobileOtpData, userToken);
+        if (data.Success) {
+          verifyId({ phone: phone });
+
+          setMobileVerificationShow(false);
+          setEmailVerificationShow(false);
+          setVerifiedMessageShow(true);
+          setOtp({
+            otp1: "",
+            otp2: "",
+            otp3: "",
+            otp4: "",
+          });
+          setTimeout(() => {
+            setVerifiedMessageShow(false);
+          }, 3000);
+        }
+      } catch (error) {
+        if (error.response.data.Success === false) {
+          setErrorMessage("Invalid OTP!");
+        }
+      }
+    }
+
+    setTimeout(() => {
+      setErrorMessage(null);
+    }, 3000);
+  };
+
+  let handelFocus = () => {
+    if (emailVerificationShow) {
+      emailRef.current.focus();
+    } else {
+      phoneRef.current.focus();
+    }
+  };
+
+  let handelResend = () => {
+    if (emailVerificationShow) {
+      if (email.length > 0) {
+        verifyId({ email: email });
+      }
+    } else {
+      if (phone.length > 0) {
+        verifyId({ phone: phone });
+      }
+    }
+  };
+
   return (
     <>
       <form onSubmit={saveProfile}>
@@ -218,8 +370,12 @@ const ProfileForm = (props) => {
               placeholder="Enter email address"
               label="Email address"
               name="email"
+              required
               value={email}
+              ref={emailRef}
+              verification={emailVerification ? verifiedData : unVerifiedData}
               onChange={handelProfileDataChange}
+              showInput={(value) => handelPropShopInput(value)}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -229,9 +385,179 @@ const ProfileForm = (props) => {
               type="tel"
               name="phone"
               value={phone}
+              ref={phoneRef}
+              verification={mobileVerification ? verifiedData : unVerifiedData}
               onChange={handelProfileDataChange}
+              required
+              showInput={(value) => handelPropShopInput(value)}
             />
           </Grid>
+
+          {/* otp verification section */}
+          <Grid
+            item
+            xs={12}
+            style={{
+              display:
+                emailVerificationShow || mobileVerificationShow
+                  ? "flex"
+                  : "none",
+            }}
+          >
+            <Grid container>
+              <Grid item sm={3}></Grid>
+              <Grid item sm={6}>
+                <Grid
+                  item
+                  xs={12}
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    justifyContent: "center",
+
+                    textAlign: "center",
+                  }}
+                >
+                  <p style={{ fontSize: "16px", fontWeight: "600" }}>
+                    We have sent the OTP to
+                    <br />{" "}
+                    <span style={{ fontWeight: "700", color: "#24B8D0" }}>
+                      {emailVerificationShow
+                        ? email
+                        : mobileVerificationShow
+                        ? phone
+                        : null}
+                    </span>
+                    <br />
+                    Input the code into the space below.
+                  </p>
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  style={{ paddingLeft: "10%", paddingRight: "10%" }}
+                >
+                  <Grid container direction="row" spacing={5}>
+                    <Grid item xs={3}>
+                      <input
+                        className="otp"
+                        maxLength="1"
+                        value={otp1}
+                        name="otp1"
+                        onChange={handelChange}
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <input
+                        className="otp"
+                        maxLength="1"
+                        value={otp2}
+                        name="otp2"
+                        onChange={handelChange}
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <input
+                        className="otp"
+                        maxLength="1"
+                        value={otp3}
+                        name="otp3"
+                        onChange={handelChange}
+                      />
+                    </Grid>
+                    <Grid item xs={3}>
+                      <input
+                        className="otp"
+                        maxLength="1"
+                        value={otp4}
+                        name="otp4"
+                        onChange={handelChange}
+                      />
+                    </Grid>
+                  </Grid>
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  sm={12}
+                  style={{ paddingLeft: "5%", paddingRight: "5%" }}
+                >
+                  <MaterialButton
+                    fullWidth
+                    disabled={otpLength.length < 4 ? true : false}
+                    style={{
+                      background: otpLength.length < 4 ? "#9EB4C1" : "#1AB4B3",
+                      color: "white",
+                      height: "50px",
+                      borderRadius: "10px",
+                      marginTop: "15px",
+                    }}
+                    onClick={handelVerifyEmail}
+                  >
+                    {mobileVerificationShow
+                      ? "Verify Your Phone"
+                      : "Verify Your Email"}
+                  </MaterialButton>
+                </Grid>
+                <Grid
+                  item
+                  xs={12}
+                  style={{ paddingLeft: "5%", paddingRight: "5%" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <p className="bottomVerificaton" onClick={handelFocus}>
+                      {mobileVerificationShow
+                        ? "Edit your mobile?"
+                        : "Edit your email?"}
+                    </p>
+                    <p className="bottomVerificaton" onClick={handelResend}>
+                      Resend
+                    </p>
+                  </div>
+                </Grid>
+              </Grid>
+
+              <Grid item sm={3}></Grid>
+            </Grid>
+          </Grid>
+
+          <Grid
+            item
+            xs={12}
+            style={{ display: verifiedMessageShow ? "flex" : "none" }}
+          >
+            <Grid container>
+              <Grid item sm={3}></Grid>
+              <Grid itemScope sm={6}>
+                <p style={{ fontSize: "24px", textAlign: "center" }}>
+                  Congrats your{" "}
+                  <span style={{ color: "#31BDF4" }}>
+                    {phoneOrMobile ? "Phone Number" : "Email"}
+                  </span>{" "}
+                  has successfully been verified.{" "}
+                </p>
+                <Grid
+                  item
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    justifyContent: "center",
+                    marginBottom: "5%",
+                  }}
+                >
+                  <img src={verification} alt="google logo" />
+                </Grid>
+              </Grid>
+              <Grid item sm={3}></Grid>
+            </Grid>
+          </Grid>
+
           <Grid item xs={12}>
             <h2
               style={{
@@ -244,6 +570,7 @@ const ProfileForm = (props) => {
               Change password
             </h2>
           </Grid>
+
           <Grid item xs={12} sm={6}>
             <PasswordInput
               placeholder="New password"

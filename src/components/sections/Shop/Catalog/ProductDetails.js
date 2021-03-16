@@ -7,9 +7,9 @@ import Input from "../../../CustomComponents/Input";
 import Button from "../../../CustomComponents/Button";
 import PurchaseSummary from "../../../CustomComponents/PurchaseSummary";
 import { detailAction } from "../../../../action/checkoutAction";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
-import { getFullUserDetails } from "../../../../services/authServices";
+import { getCheckoutUserDetail } from "../../../../services/shippingServices";
 
 import Backdrop from "@material-ui/core/Backdrop";
 import { makeStyles } from "@material-ui/core/styles";
@@ -46,25 +46,28 @@ const ProductDetails = (props) => {
     lastName: "",
     email: "",
     phone: "",
+    balance: "",
   });
-  let { firstName, lastName, email, phone } = checkoutDetails;
+  let { firstName, lastName, email, phone, balance } = checkoutDetails;
   const [state, setState] = React.useState({ quantity: 1 });
   let [productPrice, setProductPrice] = useState(null);
   let { delivery, description, image, name, price } = props.details;
+  const productId = useSelector((state) => state.checkout.shopId);
 
   let getDetail = async () => {
     try {
       setErrorMessage(null);
       setLoading(true);
-      let { data } = await getFullUserDetails(userToken);
+      let { data } = await getCheckoutUserDetail(productId, userToken);
       setLoading(false);
       if (data.Success) {
-        let { first_name, last_name, email, phone } = data.Details[0];
+        let { first_name, last_name, email, phone, balance } = data.Details[0];
         let profileObject = {
           firstName: first_name,
           lastName: last_name,
           email: email,
           phone: phone,
+          balance: balance,
         };
         setCheckoutDetails(profileObject);
       }
@@ -96,6 +99,7 @@ const ProductDetails = (props) => {
       shopId: props.details.shop_id,
       productId: props.details.productId,
       quantity: state,
+      balance: balance,
     };
     dispatch(detailAction(userDetail));
     props.update(1);
