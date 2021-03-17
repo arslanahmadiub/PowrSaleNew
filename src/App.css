@@ -67,3 +67,38 @@ a {
   font-weight: 500;
   cursor: pointer;
 }
+
+.verificationInput {
+  border: 1px solid #979faa;
+  box-sizing: border-box;
+  border-radius: 10px;
+  height: 50px;
+  width: 100%;
+  letter-spacing: 0.25em;
+
+  border-radius: 10px;
+  background: transparent;
+
+  padding-left: 15px;
+  font-size: 16px;
+  font-weight: bold;
+}
+.verificationInput:focus {
+  outline-width: 0px;
+}
+
+.verificationButton {
+  border: 1px solid #979faa;
+  box-sizing: border-box;
+  border-radius: 10px;
+  height: 50px;
+  width: 116px;
+
+  border-radius: 10px;
+  background: transparent;
+
+  cursor: pointer;
+}
+.verificationButton:focus {
+  outline-width: 0px;
+}

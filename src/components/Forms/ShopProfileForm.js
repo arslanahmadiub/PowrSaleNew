@@ -18,10 +18,9 @@ import { clearFilePicker } from "../../action/shopAction";
 import { makeStyles } from "@material-ui/core/styles";
 import { getShopIds } from "../../services/dashboardService";
 import Alert from "@material-ui/lab/Alert";
-
+import { verifyEmailOrPhone } from "../../services/authServices";
 import { selectedShopName } from "../../action/shopAction";
 import { shopIdsAction } from "../../action/shopAction";
-
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
@@ -29,6 +28,9 @@ import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import { getOnlyShopDetail } from "../../services/shopServices";
 import { editShopDetail } from "../../services/shopServices";
+import { Modal } from "antd";
+
+import { validateOtp } from "../../services/authServices";
 
 const useStyles = makeStyles((theme) => ({
   backdrop: {
@@ -339,8 +341,214 @@ const ShopProfileForm = (props) => {
     setState({ ...state, [e.target.id]: e.target.value });
   };
 
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [mobileCheckLoading, setMobileCheckLoading] = useState(false);
+  const [emailVerification, setEmailVerification] = useState(false);
+  const [mobileVerification, setMobileVerification] = useState(false);
+
+  let verifyId = async (userData) => {
+    try {
+      if ("email" in userData) {
+        setEmailCheckLoading(true);
+      } else {
+        if (phone.length > 5) {
+          setMobileCheckLoading(true);
+        }
+      }
+
+      let { data } = await verifyEmailOrPhone(userData, userToken);
+
+      if (data.Success) {
+        if ("email" in userData) {
+          setEmailVerification(data.is_verified);
+          setEmailCheckLoading(false);
+        } else {
+          setMobileVerification(data.is_verified);
+          setMobileCheckLoading(false);
+        }
+      }
+    } catch (error) {}
+  };
+
+  useEffect(() => {
+    if (email.length > 0) verifyId({ email: email });
+  }, [email]);
+  useEffect(() => {
+    if (phone.length > 5) verifyId({ phone: phone });
+  }, [phone]);
+
+  let verifiedData = {
+    status: true,
+  };
+  let unVerifiedData = {
+    status: false,
+  };
+  const [emailVerificationShow, setEmailVerificationShow] = useState(false);
+  const [mobileVerificationShow, setMobileVerificationShow] = useState(false);
+  const [showVerificationMode, setShowVerificationMode] = useState(false);
+
+  let handelPropShopInput = (value) => {
+    if (value === "phone") {
+      setEmailVerificationShow(false);
+      setShowVerificationMode(true);
+      setMobileVerificationShow(true);
+    } else {
+      setShowVerificationMode(true);
+      setMobileVerificationShow(false);
+      setEmailVerificationShow(true);
+    }
+  };
+
+  let handelCancel = () => {
+    setShowVerificationMode(false);
+  };
+
+  const [inputVerification, setInputVerification] = useState("");
+
+  let handelVerificationInput = (e) => {
+    setInputVerification(e.target.value);
+  };
+
+  const [otpError, setOtpError] = useState(null);
+  const [otpSuccess, setOtpSuccess] = useState(null);
+
+  let handelOtpVerification = async () => {
+    if (inputVerification.length === 4) {
+      let otpData = {
+        email: email,
+        otp: parseInt(inputVerification),
+      };
+      let mobileOtpData = {
+        phone: phone,
+        otp: parseInt(inputVerification),
+      };
+      try {
+        let { data } = await validateOtp(
+          emailVerificationShow ? otpData : mobileOtpData,
+          userToken
+        );
+
+        if (data.Success) {
+          setOtpSuccess(data.Message);
+          setInputVerification("");
+          if (emailVerificationShow) {
+            setEmailVerification(true);
+          } else {
+            setMobileVerification(true);
+          }
+          setTimeout(() => {
+            setShowVerificationMode(false);
+          }, 3000);
+        }
+      } catch (error) {
+        if (error.response.data.Success === false) {
+          setOtpError(error.response.data.Message);
+        }
+      }
+    }
+    setTimeout(() => {
+      setOtpSuccess(null);
+      setOtpError(null);
+    }, 3000);
+  };
   return (
     <>
+      <Modal
+        visible={showVerificationMode}
+        width={1000}
+        footer={null}
+        onCancel={handelCancel}
+        bodyStyle={{ background: "#E7EEFA" }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            justifyContent: "center",
+            margin: "0px",
+          }}
+        >
+          <h2 style={{ paddingTop: "5%" }}>Kindly verify your credentials</h2>
+        </div>
+        <Grid
+          container
+          direction="row"
+          spacing={5}
+          style={{ paddingLeft: "10%", paddingRight: "10%" }}
+        >
+          <Grid item xs={12} sm={6} md={6} style={{ marginBottom: "-200px" }}>
+            <h3>
+              {emailVerificationShow
+                ? "Email Verification"
+                : "Phone Verification"}
+            </h3>
+          </Grid>
+          <Grid item xs={12} sm={6} md={6}></Grid>
+          <Grid item xs={12} sm={6} md={6}>
+            <input
+              type="text"
+              placeholder="0000"
+              className="verificationInput"
+              value={inputVerification}
+              onChange={handelVerificationInput}
+              maxLength="4"
+            />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <p>
+                Enter the 4 digit code sent to{" "}
+                <span style={{ color: "#31BDF4" }}>
+                  {emailVerificationShow ? email : phone}
+                </span>
+              </p>
+              <p
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                Resend
+              </p>
+            </div>
+          </Grid>
+          <Grid item xs={12} sm={6} md={6}>
+            <Button
+              style={{
+                background: "transperent",
+                height: "50px",
+                width: "116px",
+                border: "1px solid #979faa",
+                borderRadius: "10px",
+                fontSize: "14px",
+              }}
+              onClick={handelOtpVerification}
+            >
+              Verify
+            </Button>
+          </Grid>
+          <Grid item xs={12}>
+            {otpError && (
+              <Alert
+                variant="filled"
+                severity="error"
+                style={{ display: otpError ? "flex" : "none" }}
+              >
+                {otpError && otpError}
+              </Alert>
+            )}
+            {otpSuccess && (
+              <Alert
+                variant="filled"
+                severity="success"
+                style={{ display: otpSuccess ? "flex" : "none" }}
+              >
+                {otpSuccess && otpSuccess}
+              </Alert>
+            )}
+          </Grid>
+        </Grid>
+      </Modal>
+
       <Grid>{errorMessage && errorMessage}</Grid>
       <br></br>
       <Backdrop className={classes.backdrop} open={loading}>
@@ -417,23 +625,35 @@ const ShopProfileForm = (props) => {
               <Grid item xs={12} sm={6}>
                 <Input
                   id="phone"
+                  name="phone"
                   value={phone}
                   onChange={onChange}
                   type="tel"
+                  verification={
+                    mobileVerification ? verifiedData : unVerifiedData
+                  }
                   placeholder="Enter phone number"
                   label="Business Phone"
                   required
+                  showInput={(value) => handelPropShopInput(value)}
+                  loading={mobileCheckLoading ? verifiedData : unVerifiedData}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Input
                   id="email"
+                  name="email"
                   value={email}
                   onChange={onChange}
                   type="email"
+                  verification={
+                    emailVerification ? verifiedData : unVerifiedData
+                  }
+                  showInput={(value) => handelPropShopInput(value)}
                   placeholder="Enter Email address"
                   label="Business email"
                   required
+                  loading={emailCheckLoading ? verifiedData : unVerifiedData}
                 />
               </Grid>
             </Grid>
@@ -516,7 +736,21 @@ const ShopProfileForm = (props) => {
               paddingBottom: "3%",
             }}
           >
-            <Button type="submit">{slectedShop ? "Save" : "Create"}</Button>
+            <Button
+              type="submit"
+              disable={
+                emailVerification === false || mobileVerification === false
+                  ? true
+                  : false
+              }
+              faded={
+                emailVerification === false || mobileVerification === false
+                  ? true
+                  : false
+              }
+            >
+              {slectedShop ? "Save" : "Create"}
+            </Button>
             <br />
           </Grid>
         </Grid>

@@ -8,8 +8,11 @@ import Input from "../../CustomComponents/Input";
 import { useSelector, useDispatch } from "react-redux";
 import { reCallTransisation, showCodeBox } from "../../../action/walletAction";
 import Alert from "@material-ui/lab/Alert";
-
 import { updateDeliveryStatus } from "../../../services/transistionServices";
+import { disputeTransaction } from "../../../services/transistionServices";
+import Grid from "@material-ui/core/Grid";
+
+import TextArea from "../../CustomComponents/TextArea";
 
 const FlexContainer = Styled.div`
     display: flex;
@@ -75,10 +78,12 @@ export default function TranstionItem(props) {
   const [errorMessage, setErrorMessage] = useState(null);
   const [buttonVisiblity, setButtonVisiblity] = useState(false);
   const functionRecall = useSelector((state) => state.wallet.transaction);
+  const [showDisputeModel, setShowDisputeModel] = useState(false);
 
   const dispatch = useDispatch();
   function primaryAction() {
     if (props.history) {
+      setShowDisputeModel(true);
     } else {
       setShowModal(!showModal);
     }
@@ -150,11 +155,112 @@ export default function TranstionItem(props) {
     toggleShow(!show);
     handelExpand();
   };
+  const [disputeMessage, setDisputeMessage] = useState("");
+  let handelDisputeMessage = (e) => {
+    setDisputeMessage(e.target.value);
+  };
+  let handelCancel = () => {
+    setShowDisputeModel(false);
+  };
+
+  const [disputeSuccessMessage, setDisputeSuccessMessage] = useState(null);
+  const [disputeErrorMessage, setDisputeErrorMessage] = useState(null);
+
+  let handelMessageSubmit = async () => {
+    let message = {
+      message: disputeMessage,
+    };
+
+    try {
+      let result = await disputeTransaction(message, userToken, data.id);
+
+      if (result.data.Success) {
+        setDisputeSuccessMessage(result.data.Message);
+        setDisputeMessage("");
+        setTimeout(() => {
+          setShowDisputeModel(false);
+        }, 3000);
+      }
+    } catch (error) {
+      setDisputeErrorMessage("Some thing went wrong or server error...");
+    }
+    setTimeout(() => {
+      setDisputeSuccessMessage(null);
+      setDisputeErrorMessage(null);
+    }, 3000);
+  };
+
   const showCodeBoxValue = useSelector((state) => state.wallet.codeBoxShow);
   return !data ? (
     <></>
   ) : (
     <Container>
+      <Modal
+        visible={showDisputeModel}
+        width={1000}
+        footer={null}
+        onCancel={handelCancel}
+        bodyStyle={{ background: "#E7EEFA" }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            justifyContent: "center",
+            margin: "0px",
+          }}
+        >
+          <h2 style={{ paddingTop: "5%" }}>Dispute Message</h2>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            paddingLeft: "5%",
+          }}
+        >
+          <h3>Transaction ID</h3>
+          <h3 style={{ color: "#90A4AE" }}>{data.id}</h3>
+        </div>
+
+        <Grid
+          container
+          direction="row"
+          spacing={5}
+          style={{ paddingLeft: "5%", paddingRight: "5%" }}
+        >
+          <Grid item xs={12} sm={12}>
+            <TextArea
+              placeholder="Enter Dispute Message"
+              label="Dispute Message"
+              rows={5}
+              required
+              name="disputeMessage"
+              value={disputeMessage}
+              onChange={handelDisputeMessage}
+            />
+          </Grid>
+          <Grid item xs={12} sm={12}>
+            <Button size="large" onClick={handelMessageSubmit}>
+              Submit
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={12}>
+            {disputeSuccessMessage && (
+              <Alert variant="filled" severity="success">
+                {disputeSuccessMessage && disputeSuccessMessage}
+              </Alert>
+            )}
+            {disputeErrorMessage && (
+              <Alert variant="filled" severity="error">
+                {disputeErrorMessage && disputeErrorMessage}
+              </Alert>
+            )}
+          </Grid>
+        </Grid>
+      </Modal>
+
       <FlexContainer onClick={toggleShowFunction} style={{ cursor: "pointer" }}>
         <FlexContainer>
           <FileCopy
@@ -210,12 +316,16 @@ export default function TranstionItem(props) {
             onClick={primaryAction}
             size="large"
             outlined={
-              data.status === "Pending" || data.status === "Cancelled"
+              props.history
+                ? false
+                : data.status === "Pending" || data.status === "Cancelled"
                 ? true
                 : false
             }
             disable={
-              data.status === "Pending" || data.status === "Cancelled"
+              props.history
+                ? false
+                : data.status === "Pending" || data.status === "Cancelled"
                 ? true
                 : false
             }
@@ -355,45 +465,53 @@ export function UpdateTransaction({
           align="center"
           style={{ display: "flex", flexDirection: "column" }}
         >
-          <AntButton
-            onClick={() => changeOrderState("shipped")}
-            style={{
-              background: "#F18F6C",
-              width: "260px",
-              height: "40px",
-              color: "white",
-              fontSize: "18px",
-              marginBottom: "25px",
-            }}
-          >
-            Shipped
-          </AntButton>
-          <AntButton
-            onClick={() => changeOrderState("delivered")}
-            style={{
-              background: "#31BDF4",
-              width: "260px",
-              height: "40px",
-              color: "white",
-              fontSize: "18px",
-              marginBottom: "25px",
-            }}
-          >
-            Delivered
-          </AntButton>
-          <AntButton
-            onClick={() => changeOrderState("cancelled")}
-            style={{
-              background: "#D26665",
-              width: "260px",
-              height: "40px",
-              color: "white",
-              fontSize: "18px",
-              marginBottom: "25px",
-            }}
-          >
-            Cancel Order
-          </AntButton>
+          {data.status === "Paid" && (
+            <AntButton
+              onClick={() => changeOrderState("shipped")}
+              style={{
+                background: "#F18F6C",
+                width: "260px",
+                height: "40px",
+                color: "white",
+                fontSize: "18px",
+                marginBottom: "25px",
+              }}
+            >
+              Shipped
+            </AntButton>
+          )}
+          {(data.status === "Paid" || data.status === "Shipped") && (
+            <AntButton
+              onClick={() => changeOrderState("delivered")}
+              style={{
+                background: "#31BDF4",
+                width: "260px",
+                height: "40px",
+                color: "white",
+                fontSize: "18px",
+                marginBottom: "25px",
+              }}
+            >
+              Delivered
+            </AntButton>
+          )}
+
+          {data.status === "Paid" && (
+            <AntButton
+              onClick={() => changeOrderState("cancelled")}
+              style={{
+                background: "#D26665",
+                width: "260px",
+                height: "40px",
+                color: "white",
+                fontSize: "18px",
+                marginBottom: "25px",
+              }}
+            >
+              Cancel Order
+            </AntButton>
+          )}
+
           <AntButton
             onClick={completedOrderFunction}
             style={{

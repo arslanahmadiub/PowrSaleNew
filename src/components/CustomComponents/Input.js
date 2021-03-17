@@ -2,6 +2,8 @@ import React from "react";
 import Styled from "styled-components";
 import DoneIcon from "@material-ui/icons/Done";
 import CloseIcon from "@material-ui/icons/Close";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import { useHistory } from "react-router";
 
 const Asterisk = Styled.span`
     color: red;
@@ -50,10 +52,12 @@ let Input = (
   ref
 ) => {
   let handelVerification = () => {
-    if (props.name === "phone") {
-      props.showInput("phone");
-    } else {
-      props.showInput("email");
+    if (props.showInput) {
+      if (props.name === "phone") {
+        props.showInput("phone");
+      } else {
+        props.showInput("email");
+      }
     }
   };
   return (
@@ -74,34 +78,57 @@ let Input = (
           height: height ? height : "45px",
         }}
       />
-      {props.verification && (
-        <div style={{ display: "flex" }}>
-          {props.verification.status ? (
-            <DoneIcon style={{ color: "#4CAF50" }} />
-          ) : (
-            <CloseIcon style={{ color: "#FF3D00" }} />
-          )}
-          {props.verification.status ? (
-            <p
-              style={{ fontSize: "14px", color: "#4CAF50", marginLeft: "6px" }}
-            >
-              Verified
-            </p>
-          ) : (
-            <p
-              style={{ fontSize: "14px", color: "#FF3D00", marginLeft: "6px" }}
-            >
-              Not verified,{" "}
-              <span
-                style={{ color: "#31BDF4", cursor: "pointer" }}
-                onClick={handelVerification}
-              >
-                click here
-              </span>{" "}
-              to verify now
-            </p>
-          )}
+      {props.loading && props.loading.status ? (
+        <div style={{ display: "flex", marginTop: "5px" }}>
+          <CircularProgress
+            style={{ width: "20px", height: "20px", color: "#31BDF4" }}
+          />
+          <p style={{ marginLeft: "10px", color: "#31BDF4" }}>
+            Waiting for verification...
+          </p>
         </div>
+      ) : (
+        value &&
+        value.length > 0 &&
+        props.verification && (
+          <div style={{ display: "flex" }}>
+            {props.verification.status ? (
+              <>
+                <DoneIcon style={{ color: "#4CAF50" }} />
+              </>
+            ) : (
+              <CloseIcon style={{ color: "#FF3D00" }} />
+            )}
+            {props.verification.status ? (
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#4CAF50",
+                  marginLeft: "6px",
+                }}
+              >
+                Verified
+              </p>
+            ) : (
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#FF3D00",
+                  marginLeft: "6px",
+                }}
+              >
+                Not verified,{" "}
+                <span
+                  style={{ color: "#31BDF4", cursor: "pointer" }}
+                  onClick={handelVerification}
+                >
+                  click here
+                </span>{" "}
+                to verify now
+              </p>
+            )}
+          </div>
+        )
       )}
     </Label>
   );

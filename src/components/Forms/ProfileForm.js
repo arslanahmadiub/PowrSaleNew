@@ -35,7 +35,6 @@ const ProfileForm = (props) => {
     first_name: "",
     last_name: "",
     other_names: "",
-
     email: "",
     phone: "",
     newPassword: "",
@@ -45,7 +44,6 @@ const ProfileForm = (props) => {
     first_name,
     last_name,
     other_names,
-
     email,
     phone,
     newPassword,
@@ -376,6 +374,7 @@ const ProfileForm = (props) => {
               verification={emailVerification ? verifiedData : unVerifiedData}
               onChange={handelProfileDataChange}
               showInput={(value) => handelPropShopInput(value)}
+              loading={{ status: true }}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
